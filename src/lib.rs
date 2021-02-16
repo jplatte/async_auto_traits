@@ -4,8 +4,7 @@
 //! `async` blocks too.
 
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
-use syn::{parse_macro_input, punctuated::Punctuated, ItemFn, Token};
+use syn::{parse_macro_input, punctuated::Punctuated, ItemFn, Path, Token};
 
 mod assert;
 mod set;
@@ -13,7 +12,7 @@ mod set;
 use assert::expand_assert;
 use set::expand_set;
 
-type AutoTraitList = Punctuated<Ident, Token![+]>;
+type AutoTraitList = Punctuated<Path, Token![+]>;
 
 /// Assert that the future returned by an `async fn` implements the given auto traits.
 ///

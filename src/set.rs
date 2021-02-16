@@ -12,9 +12,11 @@ pub fn expand_set(item: ItemFn, traits: Option<AutoTraitList>) -> TokenStream {
         ReturnType::Type(_, ty) => ty,
     };
 
+    let traits = traits.into_iter();
+
     sig.asyncness = None;
     sig.output = parse_quote! {
-        impl Future<Output = #fut_output $(+ #traits)*>
+        -> impl ::core::future::Future<Output = #fut_output> #(+ #traits)*
     };
 
     quote! {

@@ -2,10 +2,11 @@
 name = "async_auto_traits"
 description = "Assert and mask auto traits in `async fn` return types"
 repository = "https://github.com/jplatte/async_auto_traits"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Jonas Platte <jplatte@posteo.de>"]
 license = "MIT"
 edition = "2018"
+include = ["src/**/*", "LICENSE"]
 
 [lib]
 proc-macro = true
