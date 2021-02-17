@@ -4,17 +4,21 @@
 //! `async` blocks too.
 
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, punctuated::Punctuated, ItemFn, Path, Token};
+use syn::{parse_macro_input, ItemFn};
 
-mod assert;
+mod auto_trait_list;
 mod set;
 
-use assert::expand_assert;
+use auto_trait_list::AutoTraitList;
 use set::expand_set;
 
-type AutoTraitList = Punctuated<Path, Token![+]>;
-
-/// Assert that the future returned by an `async fn` implements the given auto traits.
+/// Set auto traits for this `async fn`s return type.
+///
+/// Only `Send` and `Sync` are currently supported.
+///
+/// This adds an assertion that those auto traits are valid for the `async fn`s body, i.e. it does
+/// not invoke any `unsafe` code and will produce a compile error when the auto traits are not
+/// satisfied.
 ///
 /// # Example
 ///
@@ -22,59 +26,27 @@ type AutoTraitList = Punctuated<Path, Token![+]>;
 /// #[async_auto_traits::assert(Send + Sync)]
 /// async fn foo() {}
 /// ```
-#[proc_macro_attribute]
-pub fn assert(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let traits = parse_macro_input!(attr with AutoTraitList::parse_separated_nonempty);
-    let item = parse_macro_input!(item as ItemFn);
-    check_asyncness(&item);
-    expand_assert(item, traits).into()
-}
-
-/// Clear all auto traits from the `async fn`s return type.
 ///
-/// This turns the `async fn` into a regular `fn` with an `impl Future` return type.
-/// Use this when you don't want to promise too much about the future returned by this function.
+/// # Planned features
 ///
-/// # Example
+/// Writing `!Trait` should allow you to explicitly opt out of `Send` or `Sync` if it would
+/// otherwise be inferred. This is for when you don't want to promise too much about the future
+/// returned by a function to avoid future breaking changes.
+///
+/// ## Example
 ///
 /// ```rust
-/// #[async_auto_traits::clear]
-/// async fn foo() {}
-/// ```
-#[proc_macro_attribute]
-pub fn clear(attr: TokenStream, item: TokenStream) -> TokenStream {
-    if !attr.is_empty() {
-        panic!("this attribute does not have any parameters.");
-    }
-
-    let item = parse_macro_input!(item as ItemFn);
-    check_asyncness(&item);
-    expand_set(item, None).into()
-}
-
-/// Set auto traits for this `async fn`s return type.
-///
-/// This turns the `async fn` into a regular `fn` with an `impl Future + X + Y` return type.
-/// It also serves as an assertion that those auto traits are valid for the `async fn`s body, i.e.
-/// this does not invoke any `unsafe` code and using [`macro@assert`] additionally is redundant.
-/// Use this when you don't want to promise too much about the future returned by this function.
-///
-/// # Example
-///
-/// ```rust
-/// #[async_auto_traits::set(Send)]
+/// #[async_auto_traits::assert(Send + !Sync)]
 /// async fn foo() {}
 /// ```
 #[proc_macro_attribute]
 pub fn set(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let traits = parse_macro_input!(attr with AutoTraitList::parse_separated_nonempty);
+    let traits = parse_macro_input!(attr as AutoTraitList);
     let item = parse_macro_input!(item as ItemFn);
-    check_asyncness(&item);
-    expand_set(item, Some(traits)).into()
-}
 
-fn check_asyncness(item: &ItemFn) {
     if item.sig.asyncness.is_none() {
         panic!("this attribute only works on `async fn`");
     }
+
+    expand_set(item, traits).unwrap_or_else(syn::Error::into_compile_error).into()
 }
