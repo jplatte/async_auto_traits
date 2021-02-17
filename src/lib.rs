@@ -23,7 +23,7 @@ use set::expand_set;
 /// # Example
 ///
 /// ```rust
-/// #[async_auto_traits::assert(Send + Sync)]
+/// #[async_auto_traits::set(Send + Sync)]
 /// async fn foo() {}
 /// ```
 ///
@@ -35,8 +35,8 @@ use set::expand_set;
 ///
 /// ## Example
 ///
-/// ```rust
-/// #[async_auto_traits::assert(Send + !Sync)]
+/// ```ignore
+/// #[async_auto_traits::set(Send + !Sync)]
 /// async fn foo() {}
 /// ```
 #[proc_macro_attribute]
